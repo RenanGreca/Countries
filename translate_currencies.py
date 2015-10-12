@@ -8,15 +8,16 @@ import io
 
 import argparse
 
-parser = argparse.ArgumentParser(description='''Translates a JSON of countries using Bing API.
-					Example: translate.py -f en -t pt''')
+parser = argparse.ArgumentParser(description='''Translates a JSON of currencies using Bing API.''')
 parser.add_argument('-s', '--source', type=str, required=True,
                     help='''Source language (two-character code)''')
 parser.add_argument('-t', '--target', type=str, required=True,
                     help='''Target language (two-character code)''')
     
 directory = os.path.dirname(os.path.realpath(__file__))
-countries = json.load(open(os.path.join(directory, 'countries.json'), 'r'))
+json_path = os.path.join(directory, 'json') 
+out_path = os.path.join(directory, 'currencies')
+currencies = json.load(open(os.path.join(json_path, 'currencies.json'), 'r'))
 
 # Gets client ID and Secret from external files
 with open(os.path.join(directory, 'client_id.txt'), 'r') as client_id_file:
@@ -28,7 +29,6 @@ def main(args):
     t = args.target
     s = args.source
 
-
     # Get access token from Microsoft
     print "Acquiring Access Token."
 
@@ -39,11 +39,12 @@ def main(args):
     auth = json.loads(r.text)
 
     print "Starting translation."
-    tcountries = []
-    for country in countries:
+    tcurrencies = []
+    for currency in currencies:
         # Get original name from JSON
-        name = country["name"]
-        code = country["code"]
+        cc = currency["cc"]
+        name = currency["name"]
+        symbol = currency["symbol"]
 
         sys.stdout.write("\rTranslating... %s" % name)
         sys.stdout.flush()
@@ -54,15 +55,15 @@ def main(args):
         r = requests.get(url, headers=headers)
 
         root = xmltodict.parse(r.text)
-        tcountries.append({'name': root['string']['#text'], 'code': code})
+        tcurrencies.append({'cc': cc, 'symbol': symbol, 'name': root['string']['#text']})
 
 
     # Saves translated names into new JSON
     print "Saving to file."
 
     # OMG Python character encoding is garbage
-    data = json.dumps(tcountries, ensure_ascii=False, encoding='utf8')
-    with io.open(os.path.join(directory, t+'.json'), 'w', encoding='utf8') as json_file:
+    data = json.dumps(tcurrencies, ensure_ascii=False, encoding='utf8')
+    with io.open(os.path.join(out_path, t+'.json'), 'w', encoding='utf8') as json_file:
         json_file.write(data)
 
 if __name__ == '__main__':
